@@ -9,7 +9,7 @@
 // (/v1/<BU_ID>/<SOURCE_PUBLIC_ID>) and forwards body + X-Signal-Signature.
 
 const BU_ID = "1";
-const SOURCE_PUBLIC_ID = "a1a1ad52-9a66-442e-ae48-61322d9cf240";
+const SOURCE_PUBLIC_ID = "cdff1aec-57ae-4fd0-958d-23a1213617be";
 const CIP_API_URL = "https://crm-api-private-staging.spiraledge.com";
 
 export default async function handler(req, res) {
