@@ -10,6 +10,7 @@
 
 const BU_ID = "1";
 const SOURCE_PUBLIC_ID = "a1a1ad52-9a66-442e-ae48-61322d9cf240";
+const CIP_API_URL = "https://crm-api-private-staging.spiraledge.com";
 
 export default async function handler(req, res) {
   // Only POST is supported.
@@ -18,16 +19,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const base = process.env.CIP_API_URL;
-  if (!base) {
-    res.status(500).json({
-      error: "CIP_API_URL env var not set on Vercel",
-      hint: "Project → Settings → Environment Variables → CIP_API_URL = https://<real-staging-host>",
-    });
-    return;
-  }
-
-  const upstream = `${base.replace(/\/+$/, "")}/v1/${BU_ID}/${SOURCE_PUBLIC_ID}`;
+  const upstream = `${CIP_API_URL.replace(/\/+$/, "")}/v1/${BU_ID}/${SOURCE_PUBLIC_ID}`;
   const signature = req.headers["x-signal-signature"] || "";
   const body = JSON.stringify(req.body || {});
 
