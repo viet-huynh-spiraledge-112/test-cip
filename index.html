@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spiraledge Customer Intelligence — Live Tracking Demo</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --card-2: #f1f4f9;
+    --border: #e3e8ef;
+    --accent: #16a34a;
+    --accent-dim: #15803d;
+    --amber: #d97706;
+    --red: #dc2626;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --key: #374151;
+    --str: #15803d;
+    --num: #2563eb;
+    --bool: #7c3aed;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 18px 32px;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo .leaf { font-size: 22px; }
+  .header-center { text-align: center; }
+  .header-center h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .header-center .subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.4px;
+  }
+  .header-right { text-align: right; }
+  .status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .status-dot::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* ---------- Layout ---------- */
+  main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 32px 48px;
+  }
+  .columns {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .columns { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 4px 16px rgba(15,23,42,0.06);
+  }
+  .card h2 {
+    margin: 0 0 18px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h2 .badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--accent);
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.3);
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: auto;
+  }
+
+  /* ---------- Form ---------- */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.2px;
+  }
+  .field input, .field select, .field textarea {
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+  }
+  .field textarea { resize: vertical; min-height: 48px; }
+  .field select { cursor: pointer; }
+
+  .send-btn {
+    margin-top: 22px;
+    width: 100%;
+    padding: 14px 18px;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
+    color: #06250f;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.08s, box-shadow 0.15s, filter 0.15s;
+    box-shadow: 0 6px 18px rgba(34,197,94,0.25);
+  }
+  .send-btn:hover { filter: brightness(1.05); box-shadow: 0 8px 22px rgba(34,197,94,0.35); }
+  .send-btn:active { transform: translateY(1px); }
+  .send-btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(0.3); }
+
+  /* ---------- Payload preview ---------- */
+  .payload-wrap {
+    background: #fbfcfe;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    max-height: 460px;
+    overflow: auto;
+  }
+  .payload-wrap pre {
+    margin: 0;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    white-space: pre;
+    color: var(--text);
+  }
+  .json-key { color: var(--key); }
+  .json-str { color: var(--str); }
+  .json-num { color: var(--num); }
+  .json-bool { color: var(--bool); }
+  .json-null { color: var(--muted); }
+  .json-punct { color: #9ca3af; }
+
+  /* ---------- Response section ---------- */
+  .pipeline-section { margin-top: 28px; }
+
+  /* ---------- Response block ---------- */
+  .response-block {
+    margin-top: 18px;
+    background: #fbfcfe;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 44px;
+    color: var(--muted);
+  }
+  .response-block .ok { color: var(--accent); }
+  .response-block .err { color: var(--red); }
+  .response-block .status-pill {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    margin-right: 8px;
+  }
+  .response-block .status-pill.ok { background: rgba(34,197,94,0.15); }
+  .response-block .status-pill.err { background: rgba(239,68,68,0.15); }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 0 0 12px;
+  }
+  .hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  .hint code {
+    background: var(--card-2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="leaf">🌿</span><span>Spiraledge CI</span></div>
+  <div class="header-center">
+    <h1>Customer Intelligence — Live Event Tracking</h1>
+    <div class="subtitle">Planting Created · Webhook → Postgres → Worker → ClickHouse</div>
+  </div>
+</header>
+
+<main>
+  <div class="columns">
+    <!-- LEFT: Form -->
+    <section class="card">
+      <h2>🌱 New Planting Event <span class="badge">Form</span></h2>
+      <div class="form-grid" id="formGrid">
+        <div class="field full">
+          <label for="plant_name">Plant Name</label>
+          <input type="text" id="plant_name" value="Abelia, Abelia Generic, Flowers" />
+        </div>
+        <div class="field">
+          <label for="growing_location">Growing Location</label>
+          <select id="growing_location">
+            <option>In Containers</option>
+            <option>Field</option>
+            <option>Greenhouse</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="planting_stock">Planting Stock</label>
+          <select id="planting_stock">
+            <option>Seeds</option>
+            <option>Cuttings</option>
+            <option>Transplants</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="stage">Stage of Crop</label>
+          <select id="stage">
+            <option>Not Planted</option>
+            <option>Germinating</option>
+            <option>Vegetative</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="seed_depth_cm">Seed Depth (cm)</label>
+          <input type="number" id="seed_depth_cm" value="220" />
+        </div>
+        <div class="field">
+          <label for="container_type">Container Type</label>
+          <select id="container_type">
+            <option>1020 Tray - 25×50 cm</option>
+            <option>4" Pot</option>
+            <option>6" Pot</option>
+            <option>Flat</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="footprint_width_cm">Footprint Width (cm)</label>
+          <input type="number" id="footprint_width_cm" value="25" />
+        </div>
+        <div class="field">
+          <label for="footprint_length_cm">Footprint Length (cm)</label>
+          <input type="number" id="footprint_length_cm" value="50" />
+        </div>
+        <div class="field">
+          <label for="sowing_method">Sowing Method</label>
+          <select id="sowing_method">
+            <option>Seeds per cell</option>
+            <option>Broadcast</option>
+            <option>Drilled</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="seeds_per_cell">Seeds per Cell</label>
+          <input type="number" id="seeds_per_cell" value="1" />
+        </div>
+        <div class="field">
+          <label for="germination_rate_pct">Germination Rate (%)</label>
+          <input type="number" id="germination_rate_pct" value="100" />
+        </div>
+        <div class="field full">
+          <label for="notes">Planting Notes</label>
+          <textarea id="notes" rows="2" placeholder="Optional notes..."></textarea>
+        </div>
+      </div>
+      <button class="send-btn" id="sendBtn">⚡ Send Tracking Event</button>
+    </section>
+
+    <!-- RIGHT: Payload preview -->
+    <section class="card">
+      <h2>📦 Payload Preview <span class="badge">Live JSON</span></h2>
+      <div class="payload-wrap">
+        <pre id="payloadPreview"></pre>
+      </div>
+      <div class="hint">
+        <code>provider_event_id</code> regenerates on each Send · <code>occurred_at</code> set at send time ·
+        <code>footprint_area_sq_cm</code> = width × length
+      </div>
+    </section>
+  </div>
+
+  <!-- HTTP Response -->
+  <section class="card pipeline-section">
+    <div class="section-title">HTTP Response</div>
+    <div class="response-block" id="responseBlock">Awaiting first event…</div>
+  </section>
+</main>
+
+<script>
+  // ---------------------------------------------------------------------------
+  // CONSTANTS — hardcoded per demo spec. Do NOT prompt the user.
+  // The frontend posts to the Vercel serverless proxy at /api/cip, which
+  // forwards the signed request to the real CIP endpoint server-side
+  // (avoids browser CORS). Set CIP_API_URL env var on Vercel to the real host.
+  // ---------------------------------------------------------------------------
+  const CIP_ENDPOINT = "/api/cip";
+  const SIGNING_SECRET = "mqNrP0UWPPXSS8l35s6MPV7IpTG18ZATd2I3FmMmklM";
+  const BU_ID = "1";
+  const SOURCE_PUBLIC_ID = "a1a1ad52-9a66-442e-ae48-61322d9cf240";
+
+  // CORS NOTE:
+  // The page posts to /api/cip (same origin), which is a Vercel serverless
+  // function that forwards the signed request to the real CIP endpoint.
+  // Configure the real staging host via the CIP_API_URL env var on Vercel:
+  //   Project → Settings → Environment Variables → CIP_API_URL = https://<host>
+
+  // ---------------------------------------------------------------------------
+  // UUID v4 (RFC 4122) — no external deps
+  // ---------------------------------------------------------------------------
+  function uuidv4() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
+  let providerEventId = uuidv4();
+  let occurredAt = new Date().toISOString();
+
+  // ---------------------------------------------------------------------------
+  // Build payload from form
+  // ---------------------------------------------------------------------------
+  function buildPayload(forSend) {
+    const width = Number(document.getElementById('footprint_width_cm').value) || 0;
+    const length = Number(document.getElementById('footprint_length_cm').value) || 0;
+    return {
+      event_type: "planting.created",
+      provider_event_id: forSend ? uuidv4() : providerEventId,
+      occurred_at: forSend ? new Date().toISOString() : occurredAt,
+      payload: {
+        plant_name: document.getElementById('plant_name').value,
+        growing_location: document.getElementById('growing_location').value,
+        planting_stock: document.getElementById('planting_stock').value,
+        stage: document.getElementById('stage').value,
+        seed_depth_cm: Number(document.getElementById('seed_depth_cm').value) || 0,
+        container_type: document.getElementById('container_type').value,
+        footprint_width_cm: width,
+        footprint_length_cm: length,
+        footprint_area_sq_cm: width * length,
+        sowing_method: document.getElementById('sowing_method').value,
+        seeds_per_cell: Number(document.getElementById('seeds_per_cell').value) || 0,
+        germination_rate_pct: Number(document.getElementById('germination_rate_pct').value) || 0,
+        notes: document.getElementById('notes').value
+      }
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Syntax-highlight JSON
+  // ---------------------------------------------------------------------------
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function highlightJson(obj) {
+    const json = JSON.stringify(obj, null, 2);
+    const escaped = escapeHtml(json);
+    return escaped.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g,
+      (match) => {
+        let cls = 'json-num';
+        if (/^"/.test(match)) {
+          cls = /:$/.test(match) ? 'json-key' : 'json-str';
+        } else if (/true|false/.test(match)) {
+          cls = 'json-bool';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      }
+    );
+  }
+
+  function renderPreview() {
+    document.getElementById('payloadPreview').innerHTML = highlightJson(buildPayload(false));
+  }
+
+  // Live update on input
+  document.getElementById('formGrid').addEventListener('input', renderPreview);
+  document.getElementById('formGrid').addEventListener('change', renderPreview);
+  renderPreview();
+
+  // ---------------------------------------------------------------------------
+  // HMAC-SHA256 signing via Web Crypto API
+  // ---------------------------------------------------------------------------
+  async function signBody(body) {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw", enc.encode(SIGNING_SECRET),
+      { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+    );
+    const sig = await crypto.subtle.sign("HMAC", key, enc.encode(body));
+    return Array.from(new Uint8Array(sig))
+      .map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Send
+  // ---------------------------------------------------------------------------
+  const sendBtn = document.getElementById('sendBtn');
+  const responseBlock = document.getElementById('responseBlock');
+
+  sendBtn.addEventListener('click', async () => {
+    sendBtn.disabled = true;
+    sendBtn.textContent = '⏳ Sending…';
+    responseBlock.innerHTML = '<span style="color:var(--muted)">Signing + POSTing webhook…</span>';
+
+    const payload = buildPayload(true);
+    const body = JSON.stringify(payload);
+
+    // Refresh preview with the actual send-time values
+    providerEventId = payload.provider_event_id;
+    occurredAt = payload.occurred_at;
+    renderPreview();
+
+    try {
+      const hexSig = await signBody(body);
+      const res = await fetch(CIP_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Signal-Signature": hexSig,
+        },
+        body,
+      });
+
+      const text = await res.text();
+      const ok = res.status === 202 || res.ok;
+
+      if (ok) {
+        responseBlock.innerHTML =
+          '<span class="status-pill ok">' + res.status + '</span>' +
+          '<span class="ok">' + escapeHtml(text || '{"accepted":true}') + '</span>';
+      } else {
+        responseBlock.innerHTML =
+          '<span class="status-pill err">' + res.status + '</span>' +
+          '<span class="err">' + escapeHtml(text || 'non-202 response') + '</span>';
+      }
+    } catch (err) {
+      const msg = err && err.message ? err.message : String(err);
+      const isCors = /Failed to fetch|NetworkError|CORS/i.test(msg);
+      responseBlock.innerHTML =
+        '<span class="status-pill err">ERR</span>' +
+        '<span class="err">' + escapeHtml(msg) + '</span>' +
+        (isCors ? '<br><span class="err">Possible CORS rejection — see code comment. Add the Vercel domain to the API CORS allow-list, or run via a local proxy.</span>' : '');
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = '⚡ Send Tracking Event';
+    }
+  });
+</script>
+</body>
+</html>
