@@ -279,6 +279,13 @@
       <h2>🌱 New Planting Event <span class="badge">Form</span></h2>
       <div class="form-grid" id="formGrid">
         <div class="field full">
+          <label for="farm_id">Farm ID <span style="color:var(--accent);font-weight:600">(1 per event)</span></label>
+          <select id="farm_id">
+            <option value="3240583">3240583</option>
+            <option value="3240582">3240582</option>
+          </select>
+        </div>
+        <div class="field full">
           <label for="plant_name">Plant Name</label>
           <input type="text" id="plant_name" value="Abelia, Abelia Generic, Flowers" />
         </div>
@@ -418,6 +425,7 @@
       provider_event_id: forSend ? uuidv4() : providerEventId,
       occurred_at: forSend ? new Date().toISOString() : occurredAt,
       payload: {
+        farm_id: Number(document.getElementById('farm_id').value),
         plant_name: document.getElementById('plant_name').value,
         growing_location: document.getElementById('growing_location').value,
         planting_stock: document.getElementById('planting_stock').value,
