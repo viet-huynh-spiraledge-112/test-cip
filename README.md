@@ -1,36 +1,39 @@
 # Spiraledge Customer Intelligence — Live Tracking Demo
 
 Single-page demo: a human fills in a planting form, the page HMAC-signs the
-payload and POSTs it to the live CIP endpoint, then shows the response.
+payload and POSTs it to a user-supplied CIP webhook endpoint, then shows the
+response.
+
+The **Webhook Endpoint URL** and **Signing Secret** are entered directly in the
+page's "Connection Settings" card — nothing is hardcoded. Both values persist in
+the browser via `localStorage`, so you can edit and re-test any endpoint + secret
+without touching code.
 
 ## Files
 
 - `index.html` — the demo page (pure HTML/CSS/JS, zero dependencies)
-- `api/cip.js` — Vercel serverless proxy that forwards the signed request to
-  the real CIP endpoint (avoids browser CORS)
+- `api/cip.js` — generic Vercel serverless proxy. Forwards the signed request to
+  whatever target URL the page sends via the `X-Target-URL` header (avoids
+  browser CORS). No host/path is hardcoded in the proxy.
 - `vercel.json` — SPA rewrite (excludes `/api/*`)
 
 ## Deploy to Vercel
 
 1. Push this folder to your Git repo and import it on Vercel, **or** run
    `vercel` from this folder.
-2. Set the environment variable on Vercel:
-   - **Project → Settings → Environment Variables**
-   - Name: `CIP_API_URL`
-   - Value: `https://<real-staging-host>` (no trailing slash, no `/v1/...` path)
-3. Redeploy. The proxy appends `/v1/1/a1a1ad52-9a66-442e-ae48-61322d9cf240`
-   automatically.
+2. No environment variables are required — the destination URL is supplied by
+   the user at runtime via the Connection Settings card.
 
 ## How signing works
 
-The frontend computes HMAC-SHA256 of the JSON body using `SIGNING_SECRET` via
-the Web Crypto API and sends it in the `X-Signal-Signature` header. The proxy
-forwards the body and signature header unchanged to the CIP endpoint.
+The frontend computes HMAC-SHA256 of the JSON body using the **Signing Secret**
+entered in the page (via the Web Crypto API) and sends it in the
+`X-Signal-Signature` header. The page POSTs to the same-origin proxy (`/api/cip`)
+with the target endpoint in the `X-Target-URL` header; the proxy relays the body
+and signature unchanged to that target.
 
 ## Local dev
 
 ```bash
 vercel dev
 ```
-
-Make sure `CIP_API_URL` is set in your `.env` or Vercel project settings.

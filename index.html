@@ -126,6 +126,36 @@
     margin-left: auto;
   }
 
+  /* ---------- Connection settings ---------- */
+  .conn-card {
+    margin-bottom: 24px;
+  }
+  .conn-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 14px 18px;
+  }
+  @media (max-width: 760px) {
+    .conn-grid { grid-template-columns: 1fr; }
+  }
+  .conn-grid .field.full { grid-column: 1 / -1; }
+  .conn-card h2 .badge { color: var(--num); background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.3); }
+  .toggle-visibility {
+    align-self: flex-end;
+    margin-top: -2px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .toggle-visibility:hover { color: var(--text); border-color: var(--accent); }
+  .secret-row { display: flex; gap: 8px; align-items: flex-end; }
+  .secret-row .field { flex: 1; }
+
   /* ---------- Form ---------- */
   .form-grid {
     display: grid;
@@ -273,6 +303,28 @@
 </header>
 
 <main>
+  <!-- Connection settings -->
+  <section class="card conn-card" id="connCard">
+    <h2>🔌 Connection Settings <span class="badge">Editable</span></h2>
+    <div class="conn-grid">
+      <div class="field full">
+        <label for="webhook_url">Webhook Endpoint URL <span style="color:var(--muted);font-weight:400">(full URL incl. /v1/&lt;bu_id&gt;/&lt;source_public_id&gt;)</span></label>
+        <input type="text" id="webhook_url" placeholder="https://crm-api-private-staging.spiraledge.com/v1/1/cdff1aec-57ae-4fd0-958d-23a1213617be" />
+      </div>
+      <div class="field full">
+        <label for="signing_secret">Signing Secret <span style="color:var(--muted);font-weight:400">(HMAC-SHA256 key)</span></label>
+        <div class="secret-row">
+          <input type="password" id="signing_secret" placeholder="Enter signing secret…" />
+          <button type="button" class="toggle-visibility" id="toggleSecret" title="Show / hide secret">👁 Show</button>
+        </div>
+      </div>
+    </div>
+    <div class="hint">
+      Values are <strong>not</strong> hardcoded — edit and press <code>Send Tracking Event</code> to test any endpoint + secret.
+      They persist in your browser via <code>localStorage</code>.
+    </div>
+  </section>
+
   <div class="columns">
     <!-- LEFT: Form -->
     <section class="card">
@@ -380,21 +432,45 @@
 
 <script>
   // ---------------------------------------------------------------------------
-  // CONSTANTS — hardcoded per demo spec. Do NOT prompt the user.
-  // The frontend posts to the Vercel serverless proxy at /api/cip, which
-  // forwards the signed request to the real CIP endpoint server-side
-  // (avoids browser CORS). Set CIP_API_URL env var on Vercel to the real host.
+  // No hardcoded endpoint or secret. The user enters both in the Connection
+  // Settings card; they persist in localStorage. The page posts the signed
+  // body to the same-origin Vercel proxy (/api/cip) and tells it where to
+  // forward via the X-Target-URL header (avoids browser CORS).
   // ---------------------------------------------------------------------------
-  const CIP_ENDPOINT = "/api/cip";
-  const SIGNING_SECRET = "2SAkir6YH9pV_08v2KNOSzTnwm8flRUF9DuYLIuV5Is";
-  const BU_ID = "1";
-  const SOURCE_PUBLIC_ID = "cdff1aec-57ae-4fd0-958d-23a1213617be";
+  const PROXY_ENDPOINT = "/api/cip";
 
-  // CORS NOTE:
-  // The page posts to /api/cip (same origin), which is a Vercel serverless
-  // function that forwards the signed request to the real CIP endpoint.
-  // Configure the real staging host via the CIP_API_URL env var on Vercel:
-  //   Project → Settings → Environment Variables → CIP_API_URL = https://<host>
+  const LS_KEY = "spiraledge_ci_conn";
+  const webhookUrlEl = document.getElementById('webhook_url');
+  const signingSecretEl = document.getElementById('signing_secret');
+  const toggleSecretBtn = document.getElementById('toggleSecret');
+
+  // Restore saved values from localStorage (if any).
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    if (saved.webhook_url) webhookUrlEl.value = saved.webhook_url;
+    if (saved.signing_secret) signingSecretEl.value = saved.signing_secret;
+  } catch (_) { /* ignore */ }
+
+  function persistConn() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        webhook_url: webhookUrlEl.value.trim(),
+        signing_secret: signingSecretEl.value,
+      }));
+    } catch (_) { /* ignore */ }
+  }
+  webhookUrlEl.addEventListener('input', persistConn);
+  signingSecretEl.addEventListener('input', persistConn);
+
+  // Show / hide signing secret.
+  toggleSecretBtn.addEventListener('click', () => {
+    const hidden = signingSecretEl.type === 'password';
+    signingSecretEl.type = hidden ? 'text' : 'password';
+    toggleSecretBtn.textContent = hidden ? '🙈 Hide' : '👁 Show';
+  });
+
+  function getWebhookUrl() { return webhookUrlEl.value.trim(); }
+  function getSigningSecret() { return signingSecretEl.value; }
 
   // ---------------------------------------------------------------------------
   // UUID v4 (RFC 4122) — no external deps
@@ -487,9 +563,10 @@
   // HMAC-SHA256 signing via Web Crypto API
   // ---------------------------------------------------------------------------
   async function signBody(body) {
+    const secret = getSigningSecret();
     const enc = new TextEncoder();
     const key = await crypto.subtle.importKey(
-      "raw", enc.encode(SIGNING_SECRET),
+      "raw", enc.encode(secret),
       { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
     );
     const sig = await crypto.subtle.sign("HMAC", key, enc.encode(body));
@@ -504,6 +581,33 @@
   const responseBlock = document.getElementById('responseBlock');
 
   sendBtn.addEventListener('click', async () => {
+    // Validate connection settings first.
+    const targetUrl = getWebhookUrl();
+    const secret = getSigningSecret();
+    if (!targetUrl) {
+      responseBlock.innerHTML = '<span class="status-pill err">ERR</span><span class="err">Webhook Endpoint URL is empty — enter it in Connection Settings.</span>';
+      webhookUrlEl.focus();
+      return;
+    }
+    if (!secret) {
+      responseBlock.innerHTML = '<span class="status-pill err">ERR</span><span class="err">Signing Secret is empty — enter it in Connection Settings.</span>';
+      signingSecretEl.focus();
+      return;
+    }
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch (_) {
+      responseBlock.innerHTML = '<span class="status-pill err">ERR</span><span class="err">Webhook Endpoint URL is not a valid URL.</span>';
+      webhookUrlEl.focus();
+      return;
+    }
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      responseBlock.innerHTML = '<span class="status-pill err">ERR</span><span class="err">Webhook Endpoint URL must start with http: or https:.</span>';
+      webhookUrlEl.focus();
+      return;
+    }
+
     sendBtn.disabled = true;
     sendBtn.textContent = '⏳ Sending…';
     responseBlock.innerHTML = '<span style="color:var(--muted)">Signing + POSTing webhook…</span>';
@@ -518,11 +622,12 @@
 
     try {
       const hexSig = await signBody(body);
-      const res = await fetch(CIP_ENDPOINT, {
+      const res = await fetch(PROXY_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Signal-Signature": hexSig,
+          "X-Target-URL": targetUrl,
         },
         body,
       });

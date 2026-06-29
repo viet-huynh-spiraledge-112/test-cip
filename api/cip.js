@@ -1,16 +1,12 @@
-// Vercel Serverless Function — CIP proxy.
-// Forwards the HMAC-signed webhook to the real CIP endpoint server-side,
-// bypassing browser CORS restrictions.
+// Vercel Serverless Function — generic CIP proxy.
+// Forwards the HMAC-signed webhook to whatever target URL the caller supplies
+// (via the X-Target-URL header), bypassing browser CORS restrictions.
 //
-// Configure the real staging host in Vercel:
-//   Project → Settings → Environment Variables → CIP_API_URL = https://<real-host>
+// The frontend is fully in control of the destination URL and signing secret;
+// nothing is hardcoded here. The proxy simply relays body + X-Signal-Signature
+// to the user-supplied endpoint and streams the upstream response back.
 //
-// The frontend POSTs to /api/cip; this function appends the known path
-// (/v1/<BU_ID>/<SOURCE_PUBLIC_ID>) and forwards body + X-Signal-Signature.
-
-const BU_ID = "1";
-const SOURCE_PUBLIC_ID = "cdff1aec-57ae-4fd0-958d-23a1213617be";
-const CIP_API_URL = "https://crm-api-private-staging.spiraledge.com";
+// NOTE: This is an open relay intended for a demo only.
 
 export default async function handler(req, res) {
   // Only POST is supported.
@@ -19,12 +15,29 @@ export default async function handler(req, res) {
     return;
   }
 
-  const upstream = `${CIP_API_URL.replace(/\/+$/, "")}/v1/${BU_ID}/${SOURCE_PUBLIC_ID}`;
+  const target = req.headers["x-target-url"] || "";
+  if (!target) {
+    res.status(400).json({ error: "missing_target_url", message: "X-Target-URL header is required" });
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(target);
+  } catch (_) {
+    res.status(400).json({ error: "invalid_target_url", message: "X-Target-URL must be a valid absolute URL" });
+    return;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    res.status(400).json({ error: "invalid_target_url", message: "X-Target-URL must be http(s)" });
+    return;
+  }
+
   const signature = req.headers["x-signal-signature"] || "";
   const body = JSON.stringify(req.body || {});
 
   try {
-    const upstreamRes = await fetch(upstream, {
+    const upstreamRes = await fetch(parsed.toString(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
